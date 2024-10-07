@@ -31,6 +31,7 @@ type GrpcConfig struct {
 
 type AuthConfig struct {
 	PasswordSalt string
+	TokenTTL     time.Duration `mapstructure:"tokenTTL"`
 }
 
 func Init(configDIR string, envDIR string) (*Config, error) {
@@ -70,6 +71,14 @@ func unmarshal(config *Config) error {
 	if err := viper.UnmarshalKey("mongo", &config.Mongo); err != nil {
 		logger.Error("Failed to unmarshal config file",
 			zap.String("prefix", "mongo"),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	if err := viper.UnmarshalKey("cache", &config.Auth); err != nil {
+		logger.Error("Failed to unmarshal config file",
+			zap.String("prefix", "cache"),
 			zap.Error(err),
 		)
 		return err

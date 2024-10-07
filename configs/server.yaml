@@ -6,3 +6,6 @@ http:
 
 mongo:
    name: food-store
+
+cache:
+   tokenTTL: 720h

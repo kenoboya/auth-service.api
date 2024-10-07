@@ -34,7 +34,6 @@ func Run(configDIR string, envDIR string) {
 		)
 	}
 	db := mongoClient.Database(cfg.Mongo.Name)
-
 	repositories := repo.NewRepositories(db)
 	services := service.NewServices(repositories)
 	handler := rest.NewHandler(services)

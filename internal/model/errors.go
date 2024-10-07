@@ -8,4 +8,5 @@ var (
 	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrFailedConvertID    = errors.New("failed to convert inserted ID to ObjectID")
 	ErrUserNotFound       = errors.New("user doesn't exists")
+	ErrInvalidPassword = errors.New("invalid password")
 )
