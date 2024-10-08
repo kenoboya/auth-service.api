@@ -2,6 +2,7 @@ package service
 
 import (
 	"auth-service/internal/model"
+	"auth-service/internal/repository/cache"
 	repo "auth-service/internal/repository/mongo"
 	"auth-service/pkg/auth"
 	"auth-service/pkg/hash"
@@ -14,21 +15,27 @@ import (
 )
 
 type UsersService struct {
-	repo         repo.Users
-	hasher       hash.PasswordHasher
-	tokenManager auth.TokenManager
-	cache
+	repo            repo.Users
+	hasher          hash.PasswordHasher
+	tokenManager    auth.TokenManager
+	cache           cache.SessionCache
+	sessionTokenTTL time.Duration
 }
 
-func NewUsersService(repo repo.Users, hasher hash.PasswordHasher, tokenManager auth.TokenManager) *UsersService {
+func NewUsersService(repo repo.Users, hasher hash.PasswordHasher,
+	tokenManager auth.TokenManager,
+	cache cache.SessionCache,
+	sessionTokenTTL time.Duration) *UsersService {
 	return &UsersService{
-		repo:         repo,
-		hasher:       hasher,
-		tokenManager: tokenManager,
+		repo:            repo,
+		hasher:          hasher,
+		tokenManager:    tokenManager,
+		cache:           cache,
+		sessionTokenTTL: sessionTokenTTL,
 	}
 }
 
-func (s *UsersService) Create(ctx context.Context, user model.UserSignUp) (model.Session, error) {
+func (s *UsersService) SignUp(ctx context.Context, user model.UserSignUp) (model.Session, error) {
 	id, err := s.repo.Create(ctx, model.User{
 		UserID:       bson.NewObjectID(),
 		Username:     user.Username,
@@ -45,7 +52,24 @@ func (s *UsersService) Create(ctx context.Context, user model.UserSignUp) (model
 	if err != nil {
 		return model.Session{}, err
 	}
-	session, err := s.tokenManager.GenerateSessionToken(s.hasher)
+
+	return s.createSession(ctx, id.String())
+}
+func (s *UsersService) SignIn(ctx context.Context, requestSignIn model.UserSignIn) (model.Session, error) {
+	user, err := s.repo.GetByLogin(ctx, requestSignIn.Login)
+	if err != nil {
+		return model.Session{}, err
+	}
+
+	if err := s.hasher.Compare(user.Password, requestSignIn.Password); err != nil {
+		return model.Session{}, err
+	}
+
+	return s.createSession(ctx, user.UserID.String())
+}
+
+func (s *UsersService) createSession(ctx context.Context, id string) (model.Session, error) {
+	sessionToken, err := s.tokenManager.GenerateSessionToken(s.hasher)
 	if err != nil {
 		logger.Error(
 			zap.String("action", "GenerateSessionToken()"),
@@ -53,6 +77,15 @@ func (s *UsersService) Create(ctx context.Context, user model.UserSignUp) (model
 		)
 		return model.Session{}, err
 	}
-	
+
+	session := model.Session{
+		Token:     sessionToken,
+		ExpiresAt: time.Now().Add(s.sessionTokenTTL),
+	}
+
+	if err := s.cache.SetSession(ctx, session, id); err != nil {
+		return model.Session{}, err
+	}
+
+	return session, nil
 }
-func (s *UsersService) GetByLogin(ctx context.Context, login string) (model.User, error)

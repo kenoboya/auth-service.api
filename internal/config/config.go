@@ -3,7 +3,9 @@ package config
 import (
 	"auth-service/internal/model"
 	"auth-service/pkg/database/mongodb"
+	"auth-service/pkg/database/redis"
 	logger "auth-service/pkg/logger/zap"
+	"os"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -17,6 +19,7 @@ type Config struct {
 	GRPC  GrpcConfig
 	Auth  AuthConfig
 	Mongo mongodb.MongoConfig
+	Redis redis.RedisConfig
 }
 
 type HttpConfig struct {
@@ -30,8 +33,9 @@ type GrpcConfig struct {
 }
 
 type AuthConfig struct {
-	PasswordSalt string
-	TokenTTL     time.Duration `mapstructure:"tokenTTL"`
+	Salt      string
+	SecretKey string
+	TokenTTL  time.Duration `mapstructure:"tokenTTL"`
 }
 
 func Init(configDIR string, envDIR string) (*Config, error) {
@@ -96,15 +100,26 @@ func loadFromEnv(cfg *Config, envDIR string) error {
 		return model.ErrNotFoundEnvFile
 	}
 
-	if err := envconfig.Process("DB", &cfg.Mongo); err != nil {
+	if err := envconfig.Process("MONGO", &cfg.Mongo); err != nil {
 		logger.Error("Failed to unmarshal environment file",
-			zap.String("prefix", "DB"),
+			zap.String("prefix", "MONGO"),
 			zap.String("file", ".env"),
 			zap.Error(err),
 		)
 		return err
 	}
 
+	if err := envconfig.Process("REDIS", &cfg.Mongo); err != nil {
+		logger.Error("Failed to unmarshal environment file",
+			zap.String("prefix", "REDIS"),
+			zap.String("file", ".env"),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	cfg.Auth.Salt = os.Getenv("SALT")
+	cfg.Auth.SecretKey = os.Getenv("SECRET_KEY")
 	return nil
 }
 
