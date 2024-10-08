@@ -2,6 +2,7 @@ package http_server
 
 import (
 	"auth-service/internal/config"
+	"auth-service/internal/transport/rest"
 	logger "auth-service/pkg/logger/zap"
 	"context"
 	"net/http"

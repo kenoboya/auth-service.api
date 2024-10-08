@@ -2,8 +2,12 @@ package api
 
 import (
 	"auth-service/internal/config"
+	repo "auth-service/internal/repository/mongo"
+	http_server "auth-service/internal/server/http"
 	"auth-service/internal/service"
+	"auth-service/internal/transport/rest"
 	"auth-service/pkg/database/mongodb"
+	"auth-service/pkg/database/redis"
 	logger "auth-service/pkg/logger/zap"
 	"context"
 	"os"
@@ -27,7 +31,7 @@ func Run(configDIR string, envDIR string) {
 	}
 	mongoClient, err := mongodb.NewClient(cfg.Mongo)
 	if err != nil {
-		logger.Fatal("Failed to connect to database",
+		logger.Fatal("Failed to connect to mongo",
 			zap.Error(err),
 			zap.String("context", "Initializing application"),
 			zap.String("version", "1.0.0"),
@@ -35,9 +39,18 @@ func Run(configDIR string, envDIR string) {
 		)
 	}
 	db := mongoClient.Database(cfg.Mongo.Name)
-
+	redisClient := redis.NewClient(cfg.Redis)
 	repositories := repo.NewRepositories(db)
-	services := service.NewServices(repositories)
+	deps, err := service.NewDeps(repositories, cfg, redisClient)
+	if err != nil {
+		logger.Fatal("Failed to connect to redis",
+			zap.Error(err),
+			zap.String("context", "Initializing application"),
+			zap.String("version", "1.0.0"),
+			zap.String("environment", "development"),
+		)
+	}
+	services := service.NewServices(deps)
 	handler := rest.NewHandler(services)
 	httpServer := http_server.NewServer(cfg.HTTP, handler)
 
@@ -63,7 +76,10 @@ func Run(configDIR string, envDIR string) {
 		logger.Errorf("failed to stop http server: %v", err)
 	}
 
-	if err := db.Close(); err != nil {
-		logger.Errorf("failed to stop postgres database: %v", err)
+	if err := mongoClient.Disconnect(ctx); err != nil {
+		logger.Errorf("failed to stop mongo database: %v", err)
+	}
+	if err := redisClient.Close(); err != nil {
+		logger.Errorf("failed to stop redis: %v", err)
 	}
 }

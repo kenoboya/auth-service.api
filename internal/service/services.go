@@ -15,14 +15,14 @@ import (
 )
 
 type Deps struct {
-	repo            repo.Repositories
+	repo            *repo.Repositories
 	hasher          hash.PasswordHasher
 	tokenManager    auth.TokenManager
 	cache           cache.SessionCache
 	sessionTokenTTL time.Duration
 }
 
-func NewDeps(repo repo.Repositories, cfg config.Config, client *redis.Client) (*Deps, error) {
+func NewDeps(repo *repo.Repositories, cfg *config.Config, client *redis.Client) (*Deps, error) {
 	hasher := hash.NewSHA256Hasher(cfg.Auth.Salt)
 	tokenManager, err := auth.NewManager(cfg.Auth.SecretKey)
 	if err != nil {
@@ -42,7 +42,7 @@ type Services struct {
 	Users Users
 }
 
-func NewServices(deps Deps) *Services {
+func NewServices(deps *Deps) *Services {
 	return &Services{
 		Users: NewUsersService(deps.repo.Users,
 			deps.hasher, deps.tokenManager, deps.cache,
