@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./internal/server/grpc/proto;proto";
+
+message TokenRequest {
+    string session_token = 1;  
+}
+
+message UserResponse {
+    string user_id = 1; 
+    string role = 2;
+}
+
+service AuthService {
+    rpc Verify(TokenRequest) returns (UserResponse);
+}

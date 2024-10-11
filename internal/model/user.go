@@ -12,6 +12,11 @@ const (
 	RoleShipper  = "shipper"
 )
 
+type UserResponse struct {
+	UserID bson.ObjectID `bson:"user_id"`
+	Role   string        `bson:"role"`
+}
+
 type User struct {
 	UserID       bson.ObjectID `json:"user_id" bson:"user_id"`
 	Username     string        `json:"username" bson:"username"`

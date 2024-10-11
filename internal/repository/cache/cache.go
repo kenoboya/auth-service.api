@@ -13,7 +13,7 @@ import (
 
 type SessionCache interface {
 	SetSession(ctx context.Context, session model.Session, userID string) error
-	GetSession(ctx context.Context, session model.Session) (userID string, err error)
+	GetSession(ctx context.Context, sessionToken string) (userID string, err error)
 }
 
 type RedisCache struct {
@@ -61,8 +61,8 @@ func (c *RedisCache) SetSession(ctx context.Context, session model.Session, user
 	return nil
 }
 
-func (c *RedisCache) GetSession(ctx context.Context, session model.Session) (userID string, err error) {
-	sessionKey := fmt.Sprintf("session:%s", session.Token)
+func (c *RedisCache) GetSession(ctx context.Context, sessionToken string) (userID string, err error) {
+	sessionKey := fmt.Sprintf("session:%s", sessionToken)
 
 	userID, err = c.client.HGet(ctx, sessionKey, "user_id").Result()
 	if err == redis.Nil {

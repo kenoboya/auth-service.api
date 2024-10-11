@@ -67,6 +67,21 @@ func (s *UsersService) SignIn(ctx context.Context, requestSignIn model.UserSignI
 
 	return s.createSession(ctx, user.UserID.String())
 }
+func (s *UsersService) Verify(ctx context.Context, sessionToken string) (model.UserResponse, error) {
+	userID, err := s.cache.GetSession(ctx, sessionToken)
+	if err != nil {
+		return model.UserResponse{}, err
+	}
+	objectID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return model.UserResponse{}, model.ErrInvalidFormatForConvertObjectID
+	}
+	userResponse, err := s.repo.GetSessionInfoByUserID(ctx, objectID)
+	if err != nil {
+		return model.UserResponse{}, err
+	}
+	return userResponse, nil
+}
 
 func (s *UsersService) createSession(ctx context.Context, id string) (model.Session, error) {
 	sessionToken, err := s.tokenManager.GenerateSessionToken(s.hasher)

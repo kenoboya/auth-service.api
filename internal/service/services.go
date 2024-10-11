@@ -53,4 +53,5 @@ func NewServices(deps *Deps) *Services {
 type Users interface {
 	SignUp(ctx context.Context, user model.UserSignUp) (model.Session, error)
 	SignIn(ctx context.Context, requestSignIn model.UserSignIn) (model.Session, error)
+	Verify(ctx context.Context, sessionToken string) (model.UserResponse, error)
 }

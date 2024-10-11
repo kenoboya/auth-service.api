@@ -56,3 +56,15 @@ func (r *UsersRepo) GetByLogin(ctx context.Context, login string) (model.User, e
 
 	return user, nil
 }
+
+func (r *UsersRepo) GetSessionInfoByUserID(ctx context.Context, userID bson.ObjectID) (model.UserResponse, error) {
+	var user model.UserResponse
+	filter := bson.M{"_id": userID}
+	if err := r.db.FindOne(ctx, filter).Decode(&user); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return model.UserResponse{}, model.ErrUserNotFound
+		}
+		return model.UserResponse{}, err
+	}
+	return user, nil
+}

@@ -3,8 +3,10 @@ package api
 import (
 	"auth-service/internal/config"
 	repo "auth-service/internal/repository/mongo"
+	grpc_server "auth-service/internal/server/grpc"
 	http_server "auth-service/internal/server/http"
 	"auth-service/internal/service"
+	grpc_handler "auth-service/internal/transport/gprc"
 	"auth-service/internal/transport/rest"
 	"auth-service/pkg/database/mongodb"
 	"auth-service/pkg/database/redis"
@@ -51,8 +53,8 @@ func Run(configDIR string, envDIR string) {
 		)
 	}
 	services := service.NewServices(deps)
-	handler := rest.NewHandler(services)
-	httpServer := http_server.NewServer(cfg.HTTP, handler)
+	handlerHTTP := rest.NewHandler(services)
+	httpServer := http_server.NewServer(cfg.HTTP, handlerHTTP)
 
 	go func() {
 		if err := httpServer.Run(); err != nil {
@@ -62,6 +64,18 @@ func Run(configDIR string, envDIR string) {
 
 	logger.Info("Http server started")
 
+	handlerGRPC := grpc_handler.NewAuthHandler(*services)
+	grpcServer := grpc_server.NewServer(cfg.GRPC, handlerGRPC)
+
+	go func() {
+		if err := grpcServer.Run(); err != nil {
+			logger.Fatalf("The grpc server didn't start: %s\n", err)
+		}
+	}()
+
+	logger.Info("Grpc server started")
+
+	// EXIT
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 
@@ -75,6 +89,8 @@ func Run(configDIR string, envDIR string) {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		logger.Errorf("failed to stop http server: %v", err)
 	}
+
+	grpcServer.Stop()
 
 	if err := mongoClient.Disconnect(ctx); err != nil {
 		logger.Errorf("failed to stop mongo database: %v", err)

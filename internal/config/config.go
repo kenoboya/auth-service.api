@@ -30,6 +30,7 @@ type HttpConfig struct {
 }
 
 type GrpcConfig struct {
+	Addr string `mapstructure:"port"`
 }
 
 type AuthConfig struct {

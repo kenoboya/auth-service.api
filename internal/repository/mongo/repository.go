@@ -21,4 +21,5 @@ func NewRepositories(db *mongo.Database) *Repositories {
 type Users interface {
 	Create(ctx context.Context, user model.User) (bson.ObjectID, error)
 	GetByLogin(ctx context.Context, login string) (model.User, error)
+	GetSessionInfoByUserID(ctx context.Context, userID bson.ObjectID) (model.UserResponse, error)
 }

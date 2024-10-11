@@ -12,6 +12,7 @@ func (h *Handler) initUserRoutes(router *gin.RouterGroup) {
 	{
 		user.POST("/sign-up", h.signUp)
 		user.POST("/sign-in", h.signIn)
+		user.POST("")
 	}
 }
 

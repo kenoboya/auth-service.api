@@ -4,6 +4,9 @@ http:
   readTimeout: 10s
   writeTimeout: 10s
 
+grpc:
+  port: ":50052"
+
 mongo:
    name: food-store
 
